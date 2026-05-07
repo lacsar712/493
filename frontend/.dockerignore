@@ -1,0 +1,17 @@
+node_modules/
+**/node_modules/
+dist/
+.git
+.idea
+.vscode
+**/.DS_Store
+tests/
+**/tests/
+**/__tests__/**
+**/*.spec.*
+**/*.test.*
+coverage/
+cypress/
+playwright/
+scripts/test*/
+qa_*
