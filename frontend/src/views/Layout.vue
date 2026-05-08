@@ -44,12 +44,20 @@
             <el-icon><Timer /></el-icon>
             <span>登录日志</span>
           </el-menu-item>
+          <el-menu-item index="/admin/tcm-history">
+            <el-icon><TrendCharts /></el-icon>
+            <span>体质历史</span>
+          </el-menu-item>
         </template>
         
         <template v-if="userStore.role === 'DOCTOR'">
           <el-menu-item index="/doctor/patients">
             <el-icon><FirstAidKit /></el-icon>
             <span>我的患者</span>
+          </el-menu-item>
+          <el-menu-item index="/doctor/tcm-history">
+            <el-icon><TrendCharts /></el-icon>
+            <span>体质历史</span>
           </el-menu-item>
         </template>
         
@@ -61,6 +69,10 @@
           <el-menu-item index="/patient/questionnaire">
             <el-icon><List /></el-icon>
             <span>体质问卷</span>
+          </el-menu-item>
+          <el-menu-item index="/patient/tcm-history">
+            <el-icon><TrendCharts /></el-icon>
+            <span>体质历史</span>
           </el-menu-item>
           <el-menu-item index="/patient/records">
             <el-icon><Document /></el-icon>
@@ -108,14 +120,13 @@
 import { computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useRouter, useRoute } from 'vue-router'
-import { User, Management, FirstAidKit, UserFilled, List, Document, Odometer, Timer } from '@element-plus/icons-vue'
+import { User, Management, FirstAidKit, UserFilled, List, Document, Odometer, Timer, TrendCharts } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
 
 const routeName = computed(() => {
-    // Simple mapping or use route.meta.title if added
     const map = {
         'UserManagement': '账号管理',
         'AdminPatientList': '患者管理',
@@ -124,7 +135,10 @@ const routeName = computed(() => {
         'MyProfile': '个人档案',
         'Questionnaire': '体质问卷',
         'MyRecords': '健康记录',
-        'Dashboard': '首页'
+        'Dashboard': '首页',
+        'PatientTcmHistory': '体质历史',
+        'DoctorTcmHistory': '体质历史',
+        'AdminTcmHistory': '体质历史'
     }
     return map[route.name] || '首页'
 })
