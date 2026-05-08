@@ -2,9 +2,11 @@ package com.example.tcm.controller;
 
 import com.example.tcm.common.Result;
 import com.example.tcm.dto.QuestionSubmitRequest;
+import com.example.tcm.entity.Patient;
 import com.example.tcm.entity.TcmQuestion;
 import com.example.tcm.entity.TcmResult;
 import com.example.tcm.entity.User;
+import com.example.tcm.repository.PatientRepository;
 import com.example.tcm.repository.TcmQuestionRepository;
 import com.example.tcm.repository.TcmResultRepository;
 import com.example.tcm.repository.UserRepository;
@@ -13,12 +15,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/tcm")
@@ -32,6 +39,9 @@ public class TcmController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PatientRepository patientRepository;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -203,5 +213,93 @@ public class TcmController {
         }
 
         return Result.success(resultRepository.findByPatientId(user.getPatientId()));
+    }
+
+    @GetMapping("/results/history")
+    public Result<Page<TcmResult>> getHistoryResults(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Long patientId,
+            HttpServletRequest request) {
+
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.extractUserId(token);
+        String role = jwtUtil.extractRole(token);
+        User user = userRepository.findById(userId).orElse(null);
+
+        if (user == null) {
+            return Result.error(401, "用户不存在");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdTime"));
+        Page<TcmResult> resultPage;
+
+        if ("PATIENT".equals(role)) {
+            if (user.getPatientId() == null) {
+                return Result.error(400, "用户未关联患者信息");
+            }
+            resultPage = resultRepository.findByPatientId(user.getPatientId(), pageable);
+        } else if ("DOCTOR".equals(role)) {
+            List<Patient> myPatients = patientRepository.findByMainDoctorId(userId);
+            List<Long> myPatientIds = myPatients.stream()
+                    .map(Patient::getId)
+                    .collect(Collectors.toList());
+
+            if (myPatientIds.isEmpty()) {
+                return Result.success(Page.empty(pageable));
+            }
+
+            if (patientId != null) {
+                if (!myPatientIds.contains(patientId)) {
+                    return Result.error(403, "无权查询该患者的历史记录");
+                }
+                resultPage = resultRepository.findByPatientId(patientId, pageable);
+            } else {
+                resultPage = resultRepository.findByPatientIdIn(myPatientIds, pageable);
+            }
+        } else if ("ADMIN".equals(role)) {
+            if (patientId != null) {
+                resultPage = resultRepository.findByPatientId(patientId, pageable);
+            } else {
+                resultPage = resultRepository.findAll(pageable);
+            }
+        } else {
+            return Result.error(403, "未知角色");
+        }
+
+        return Result.success(resultPage);
+    }
+
+    @GetMapping("/results/{id}")
+    public Result<TcmResult> getResultById(@PathVariable Long id, HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.extractUserId(token);
+        String role = jwtUtil.extractRole(token);
+        User user = userRepository.findById(userId).orElse(null);
+
+        if (user == null) {
+            return Result.error(401, "用户不存在");
+        }
+
+        TcmResult result = resultRepository.findById(id).orElse(null);
+        if (result == null) {
+            return Result.error(404, "记录不存在");
+        }
+
+        if ("PATIENT".equals(role)) {
+            if (!result.getPatientId().equals(user.getPatientId())) {
+                return Result.error(403, "无权查看该记录");
+            }
+        } else if ("DOCTOR".equals(role)) {
+            List<Patient> myPatients = patientRepository.findByMainDoctorId(userId);
+            List<Long> myPatientIds = myPatients.stream()
+                    .map(Patient::getId)
+                    .collect(Collectors.toList());
+            if (!myPatientIds.contains(result.getPatientId())) {
+                return Result.error(403, "无权查看该记录");
+            }
+        }
+
+        return Result.success(result);
     }
 }

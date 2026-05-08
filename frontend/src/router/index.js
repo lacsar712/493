@@ -50,6 +50,12 @@ const router = createRouter({
             meta: { role: 'ADMIN' }
         },
         {
+            path: 'admin/tcm-history',
+            name: 'AdminTcmHistory',
+            component: () => import('@/views/admin/TcmHistory.vue'),
+            meta: { role: 'ADMIN' }
+        },
+        {
             path: 'admin/logs',
             name: 'AdminLoginLogList',
             component: () => import('@/views/admin/LoginLogList.vue'),
@@ -60,6 +66,12 @@ const router = createRouter({
             path: 'doctor/patients',
             name: 'MyPatients',
             component: () => import('@/views/doctor/MyPatients.vue'),
+            meta: { role: 'DOCTOR' }
+        },
+        {
+            path: 'doctor/tcm-history',
+            name: 'DoctorTcmHistory',
+            component: () => import('@/views/doctor/TcmHistory.vue'),
             meta: { role: 'DOCTOR' }
         },
         {
@@ -85,6 +97,12 @@ const router = createRouter({
              path: 'patient/records',
              name: 'MyRecords',
              component: () => import('@/views/patient/MyRecords.vue'),
+             meta: { role: 'PATIENT' }
+        },
+         {
+             path: 'patient/tcm-history',
+             name: 'TcmHistory',
+             component: () => import('@/views/patient/TcmHistory.vue'),
              meta: { role: 'PATIENT' }
         }
       ]
